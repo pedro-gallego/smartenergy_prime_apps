@@ -44,12 +44,29 @@
 #include "interrupts.h"
 
 
+void TRNG_Initialize( void )
+{
+    TRNG_REGS->TRNG_CR = TRNG_CR_KEY_PASSWD | TRNG_CR_ENABLE_Msk;
+}
+
+
 uint32_t TRNG_ReadData( void )
 {
-	TRNG_REGS->TRNG_CR = TRNG_CR_KEY_PASSWD | TRNG_CR_ENABLE_Msk;
-	while(((TRNG_REGS->TRNG_ISR) & (TRNG_ISR_DATRDY_Msk)) != TRNG_ISR_DATRDY_Msk);			
-	TRNG_REGS->TRNG_CR = TRNG_CR_KEY_PASSWD;
-	return (TRNG_REGS->TRNG_ODATA);
+    while(((TRNG_REGS->TRNG_ISR) & (TRNG_ISR_DATRDY_Msk)) != TRNG_ISR_DATRDY_Msk)
+    {
+                 /* Wait for read to complete */
+    }
+    return (TRNG_REGS->TRNG_ODATA);
+}
+
+void TRNG_Enable( void )
+{
+    TRNG_REGS->TRNG_CR = TRNG_CR_KEY_PASSWD | TRNG_CR_ENABLE_Msk;
+}
+
+void TRNG_Disable( void )
+{
+    TRNG_REGS->TRNG_CR = TRNG_CR_KEY_PASSWD;
 }
 
 

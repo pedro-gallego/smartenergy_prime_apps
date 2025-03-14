@@ -61,6 +61,9 @@
 // *****************************************************************************
 // *****************************************************************************
 
+
+static va_list sArgs = {0};
+
 /* Application Data
 
   Summary:
@@ -215,15 +218,15 @@ static bool APP_CONSOLE_SetTxBuffer(char *buffer)
 	switch (*buffer)
     {
 		case '0':
-            appPlcTx.pl360Tx.bufferId = TX_BUFFER_0;
+            appPlcTx.plcPhyTx.bufferId = TX_BUFFER_0;
             break;
             
         case '1':
-            appPlcTx.pl360Tx.bufferId = TX_BUFFER_1;
+            appPlcTx.plcPhyTx.bufferId = TX_BUFFER_1;
             break;
             
         default:
-            return false;        
+            return false;
     }
 
     return true;
@@ -244,7 +247,7 @@ static bool APP_CONSOLE_SetAttenuationLevel(char *level)
             attLevel += attLevelHex;
 
             if ((attLevel <= 0x1F) || (attLevel == 0xFF)) {
-                appPlcTx.pl360Tx.attenuation = attLevel;
+                appPlcTx.plcPhyTx.attenuation = attLevel;
                 return true;
             }
         }
@@ -311,20 +314,24 @@ static uint8_t APP_CONSOLE_SetScheme(char *scheme)
 
 static uint8_t APP_CONSOLE_SetDisableRX(char *disable)
 {
+    appPlcTx.plcPhyTx.csma.senseCount = 0;
+    appPlcTx.plcPhyTx.csma.senseDelayMs = 0;
+
     switch (*disable)
     {
 		case 'Y':
         case 'y':
-            appPlcTx.pl360Tx.forced = 1;
+            appPlcTx.plcPhyTx.csma.disableRx = 1;
+
             break;
             
         case 'N':
         case 'n':
-            appPlcTx.pl360Tx.forced = 0;
+            appPlcTx.plcPhyTx.csma.disableRx = 0;
             break;
             
         default:
-            return false;        
+            return false;
     }
     
     return true;
@@ -335,19 +342,19 @@ static uint8_t APP_CONSOLE_SetFrameType(char *mode)
     switch (*mode)
     {
 		case '0':
-            appPlcTx.pl360Tx.frameType = FRAME_TYPE_A;
+            appPlcTx.plcPhyTx.frameType = FRAME_TYPE_A;
             break;
             
         case '2':
-            appPlcTx.pl360Tx.frameType = FRAME_TYPE_B;
+            appPlcTx.plcPhyTx.frameType = FRAME_TYPE_B;
             break;
             
         case '3':
-            appPlcTx.pl360Tx.frameType = FRAME_TYPE_BC;
+            appPlcTx.plcPhyTx.frameType = FRAME_TYPE_BC;
             break;
             
         default:
-            return false;        
+            return false;
     }
     
     return true;
@@ -359,13 +366,13 @@ static bool APP_CONSOLE_SetTransmissionPeriod(char *pTime, size_t length)
     uint8_t tmpValue;
     bool result = false;
 
-    appPlcTx.pl360Tx.time = 0;
+    appPlcTx.plcPhyTx.timeIni = 0;
 
     for(index = length - 1; index > 0; index--)
     {
         if ((*pTime >= '0') && (*pTime <= '9')) {
 				tmpValue = (*pTime - 0x30);
-                appPlcTx.pl360Tx.time += (uint32_t)pow(10, index) * tmpValue;
+                appPlcTx.plcPhyTx.timeIni += (uint32_t)pow(10, index) * tmpValue;
                 pTime++;
 
                 result = true;
@@ -387,7 +394,7 @@ static bool APP_CONSOLE_SetDataLength(char *pDataLength, size_t length)
     uint8_t tmpValue;
     bool result = false;
 
-    appPlcTx.pl360Tx.dataLength = 0;
+    appPlcTx.plcPhyTx.dataLength = 0;
 
     for (index = length; index > 0; index--)
     {
@@ -406,7 +413,7 @@ static bool APP_CONSOLE_SetDataLength(char *pDataLength, size_t length)
     
     if (result & (dataLength < APP_PLC_BUFFER_SIZE))
     {
-        appPlcTx.pl360Tx.dataLength = dataLength;
+        appPlcTx.plcPhyTx.dataLength = dataLength;
     }
 
     return result;
@@ -419,8 +426,8 @@ static bool APP_CONSOLE_SetDataMode(char *mode)
     uint32_t dataValue;
     bool result = true;
 
-    length = appPlcTx.pl360Tx.dataLength;
-    pData = appPlcTx.pl360Tx.pTransmitData;
+    length = appPlcTx.plcPhyTx.dataLength;
+    pData = appPlcTx.plcPhyTx.pTransmitData;
 
 	switch (*mode)
     {
@@ -463,7 +470,7 @@ static bool APP_CONSOLE_SetChannel(char *channel)
     SRV_PLC_PCOUP_CHANNEL_DATA *chnData;
     
     chn = (DRV_PLC_PHY_CHANNEL)(*channel - 0x30);
-    chnData = SRV_PCOUP_Get_Channel_Config(chn);
+    chnData = SRV_PCOUP_GetChannelConfig(chn);
     
     /* Check if channel is available via MCC configuration */
     if (chnData != NULL)
@@ -508,23 +515,23 @@ static bool APP_CONSOLE_SetAutodetect(char *buffer)
 static void APP_CONSOLE_ShowConfiguration(void)
 {
     APP_CONSOLE_Print("\n\r-- Configuration Info --------------\r\n");
-    APP_CONSOLE_Print("-I- PHY Version: 0x%08X\n\r", (unsigned int)appPlcTx.pl360PhyVersion);
+    APP_CONSOLE_Print("-I- PHY Version: 0x%08X\n\r", (unsigned int)appPlcTx.plcPhyVersion);
 
-    if (appPlcTx.pl360Tx.attenuation == 0xFF)
+    if (appPlcTx.plcPhyTx.attenuation == 0xFF)
     {
         APP_CONSOLE_Print("-I- TX Attenuation: 0xFF (no signal)\n\r");
     }
     else
     {
-        APP_CONSOLE_Print("-I- TX Attenuation: 0x%02X\n\r", (unsigned int)appPlcTx.pl360Tx.attenuation);
+        APP_CONSOLE_Print("-I- TX Attenuation: 0x%02X\n\r", (unsigned int)appPlcTx.plcPhyTx.attenuation);
     }
     
-    APP_CONSOLE_Print("-I- Modulation Scheme: %s\n\r", schemeDescription[appPlcTx.pl360Tx.scheme]);
-    APP_CONSOLE_Print("-I- Disable RX: %u\n\r", appPlcTx.pl360Tx.forced);
-    APP_CONSOLE_Print("-I- PRIME mode: %s\n\r", frameDescription[appPlcTx.pl360Tx.frameType]);
-    APP_CONSOLE_Print("-I- Time Period: %u\n\r", (unsigned int)appPlcTx.pl360Tx.time);
-	APP_CONSOLE_Print("-I- Data Len: %u\n\r", (unsigned int)appPlcTx.pl360Tx.dataLength);
-    if (appPlcTx.pl360Tx.pTransmitData[0] == 0x30)
+    APP_CONSOLE_Print("-I- Modulation Scheme: %s\n\r", schemeDescription[appPlcTx.plcPhyTx.scheme]);
+    APP_CONSOLE_Print("-I- Disable RX: %u\n\r", appPlcTx.plcPhyTx.csma.disableRx);
+    APP_CONSOLE_Print("-I- PRIME mode: %s\n\r", frameDescription[appPlcTx.plcPhyTx.frameType]);
+    APP_CONSOLE_Print("-I- Time Period: %u\n\r", (unsigned int)appPlcTx.plcPhyTx.timeIni);
+	APP_CONSOLE_Print("-I- Data Len: %u\n\r", (unsigned int)appPlcTx.plcPhyTx.dataLength);
+    if (appPlcTx.plcPhyTx.pTransmitData[0] == 0x30)
     {
 		APP_CONSOLE_Print("-I- Fixed Data\r\n");
 	}
@@ -602,7 +609,7 @@ void APP_CONSOLE_Initialize ( void )
 void APP_CONSOLE_Tasks ( void )
 {
     /* Refresh WDG */
-    WDT_Clear();
+    CLEAR_WATCHDOG();
     
     /* Read console port */
     APP_CONSOLE_ReadSerialChar();
@@ -759,7 +766,7 @@ void APP_CONSOLE_Tasks ( void )
                 if (APP_CONSOLE_SetTxBuffer(appConsole.pReceivedChar))
                 {
                     APP_CONSOLE_Print("\r\nSet TX Buffer ID = %u\r\n",
-                            (unsigned int)appPlcTx.pl360Tx.bufferId);
+                            (unsigned int)appPlcTx.plcPhyTx.bufferId);
                     appConsole.state = APP_CONSOLE_STATE_SHOW_MENU;
                 }
                 else
@@ -779,7 +786,7 @@ void APP_CONSOLE_Tasks ( void )
                 if (APP_CONSOLE_SetAttenuationLevel(appConsole.pReceivedChar))
                 {
                     APP_CONSOLE_Print("\r\nSet Attenuation level = 0x%02x\r\n",
-                            (unsigned int)appPlcTx.pl360Tx.attenuation);
+                            (unsigned int)appPlcTx.plcPhyTx.attenuation);
                     appConsole.state = APP_CONSOLE_STATE_SHOW_MENU;
                 }
                 else
@@ -821,7 +828,7 @@ void APP_CONSOLE_Tasks ( void )
             {
                 if (APP_CONSOLE_SetDisableRX(appConsole.pReceivedChar))
                 {
-                    if (appPlcTx.pl360Tx.forced)
+                    if (appPlcTx.plcPhyTx.csma.disableRx)
                     {
                         APP_CONSOLE_Print("\r\nDisable RX in TX\r\n");
                     }
@@ -847,7 +854,7 @@ void APP_CONSOLE_Tasks ( void )
             {
                 if (APP_CONSOLE_SetFrameType(appConsole.pReceivedChar))
                 {
-                    APP_CONSOLE_Print("\r\nSet frame type: %s\r\n", frameDescription[appPlcTx.pl360Tx.frameType]);
+                    APP_CONSOLE_Print("\r\nSet frame type: %s\r\n", frameDescription[appPlcTx.plcPhyTx.frameType]);
                     appConsole.state = APP_CONSOLE_STATE_SHOW_MENU;
                 }
                 else
@@ -867,7 +874,7 @@ void APP_CONSOLE_Tasks ( void )
                 if (APP_CONSOLE_SetTransmissionPeriod(appConsole.pReceivedChar, appConsole.dataLength))
                 {
                     APP_CONSOLE_Print("\r\nSet Time Period = %u us.\r\n",
-                            (unsigned int)appPlcTx.pl360Tx.time);
+                            (unsigned int)appPlcTx.plcPhyTx.timeIni);
                     appConsole.state = APP_CONSOLE_STATE_SHOW_MENU;
                 }
                 else
@@ -887,7 +894,7 @@ void APP_CONSOLE_Tasks ( void )
                 if (APP_CONSOLE_SetDataLength(appConsole.pReceivedChar, appConsole.dataLength))
                 {
                     APP_CONSOLE_Print("\r\nSet Data Length = %u bytes\r\n",
-                            (unsigned int)appPlcTx.pl360Tx.dataLength);
+                            (unsigned int)appPlcTx.plcPhyTx.dataLength);
 
                     /* Set Data content */
                     APP_CONSOLE_Print(MENU_DATA_MODE);
@@ -1022,8 +1029,7 @@ void APP_CONSOLE_Tasks ( void )
 void APP_CONSOLE_Print(const char *format, ...)
 {
     size_t len = 0;
-    va_list args = {0};
-    uint32_t numRetries = CPU_CLOCK_FREQUENCY / 10000;
+    uint32_t numRetries = 10000;
     
     if (appConsole.state == APP_CONSOLE_STATE_INIT)
     {
@@ -1036,17 +1042,19 @@ void APP_CONSOLE_Print(const char *format, ...)
         {
             /* Maintain Console service */
             SYS_CONSOLE_Tasks(SYS_CONSOLE_INDEX_0);
+
+            /* Refresh WDG */
+            CLEAR_WATCHDOG();
         }
         else
         {
-            numRetries = 0xFF;
             return;
         }
     }
 
-    va_start( args, format );
-    len = vsnprintf(appConsole.pTransmitChar, SERIAL_BUFFER_SIZE - 1, format, args);
-    va_end( args );
+    va_start( sArgs, format );
+    len = vsnprintf(appConsole.pTransmitChar, SERIAL_BUFFER_SIZE - 1, format, sArgs);
+    va_end( sArgs );
     
     if (len > SERIAL_BUFFER_SIZE - 1)
     {

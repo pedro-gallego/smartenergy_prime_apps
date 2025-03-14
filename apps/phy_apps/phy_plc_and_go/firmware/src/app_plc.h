@@ -72,14 +72,6 @@ extern "C" {
 #define APP_PLC_BUFFER_SIZE                       512    
 #define APP_PLC_PIB_BUFFER_SIZE                   256
     
-/* Each carrier corresponding to the band can be notched (no energy is sent in those carriers) */
-/* Each carrier is represented by one byte (0: carrier used; 1: carrier notched). By default it is all 0's in PLC device */
-/* The length is the number of carriers corresponding to the band in use. */
-/* In this example case 36 (only valid for CENELEC-A band). */
-/* The same Tone Mask must be set in both transmitter and receiver. Otherwise they don't understand each other */
-#define APP_PLC_STATIC_NOTCHING_ENABLE                0    
-#define APP_PLC_TONE_MASK_STATIC_NOTCHING_EXAMPLE     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-    
 // *****************************************************************************
 /* Application states
 
@@ -98,9 +90,7 @@ typedef enum
     APP_PLC_STATE_INIT,
     APP_PLC_STATE_OPEN,
     APP_PLC_STATE_WAITING,
-    APP_PLC_STATE_TX,
     APP_PLC_STATE_WAITING_TX_CFM,
-    APP_PLC_STATE_SET_CHANNEL,
     APP_PLC_STATE_SLEEP,
     APP_PLC_STATE_ERROR,
 
@@ -148,7 +138,7 @@ typedef struct
     
     APP_PLC_STATES state;
     
-    DRV_HANDLE drvPl360Handle;
+    DRV_HANDLE drvPlcHandle;
     
     DRV_PLC_PHY_TX_RESULT lastTxResult;
     
@@ -162,9 +152,9 @@ typedef struct
 
 typedef struct
 {    
-    uint32_t pl360PhyVersion;
+    uint32_t plcPhyVersion;
     
-    DRV_PLC_PHY_TRANSMISSION_OBJ pl360Tx;
+    DRV_PLC_PHY_TRANSMISSION_OBJ plcPhyTx;
     
     uint8_t *pDataTx;
     

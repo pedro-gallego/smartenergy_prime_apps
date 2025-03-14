@@ -16,28 +16,28 @@
 *******************************************************************************/
 
 //DOM-IGNORE-BEGIN
-/*******************************************************************************
-* Copyright (C) 2021 Microchip Technology Inc. and its subsidiaries.
-*
-* Subject to your compliance with these terms, you may use Microchip software
-* and any derivatives exclusively with Microchip products. It is your
-* responsibility to comply with third party license terms applicable to your
-* use of third party software (including open source software) that may
-* accompany Microchip software.
-*
-* THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES, WHETHER
-* EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE, INCLUDING ANY IMPLIED
-* WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A
-* PARTICULAR PURPOSE.
-*
-* IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE,
-* INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND
-* WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS
-* BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE FORESEEABLE. TO THE
-* FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN
-* ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
-* THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
-*******************************************************************************/
+/*
+Copyright (C) 2023, Microchip Technology Inc., and its subsidiaries. All rights reserved.
+
+The software and documentation is provided by microchip and its contributors
+"as is" and any express, implied or statutory warranties, including, but not
+limited to, the implied warranties of merchantability, fitness for a particular
+purpose and non-infringement of third party intellectual property rights are
+disclaimed to the fullest extent permitted by law. In no event shall microchip
+or its contributors be liable for any direct, indirect, incidental, special,
+exemplary, or consequential damages (including, but not limited to, procurement
+of substitute goods or services; loss of use, data, or profits; or business
+interruption) however caused and on any theory of liability, whether in contract,
+strict liability, or tort (including negligence or otherwise) arising in any way
+out of the use of the software and documentation, even if advised of the
+possibility of such damage.
+
+Except as expressly permitted hereunder and subject to the applicable license terms
+for any third-party software incorporated in the software and any applicable open
+source software license terms, no license or other rights, whether express or
+implied, are granted under any patent or other intellectual property rights of
+Microchip or any third party.
+*/
 //DOM-IGNORE-END
 
 // *****************************************************************************
@@ -64,7 +64,7 @@ static DRV_PLC_PHY_OBJ *gPlcPhyObj;
 
 /* Buffer definition to communicate with PLC */
 static CACHE_ALIGN uint8_t sDataInfo[CACHE_ALIGNED_SIZE_GET(PLC_STATUS_LENGTH)];
-static CACHE_ALIGN uint8_t sDataTx[CACHE_ALIGNED_SIZE_GET(PLC_TX_PAR_SIZE + PLC_DATA_PKT_SIZE)];
+static CACHE_ALIGN uint8_t sDataTx[CACHE_ALIGNED_SIZE_GET((PLC_TX_PAR_SIZE + PLC_DATA_PKT_SIZE))];
 static CACHE_ALIGN uint8_t sDataRxPar[CACHE_ALIGNED_SIZE_GET(PLC_RX_PAR_SIZE)];
 static CACHE_ALIGN uint8_t sDataRxDat[CACHE_ALIGNED_SIZE_GET(PLC_DATA_PKT_SIZE)];
 static CACHE_ALIGN uint8_t sDataTxCfm[2][CACHE_ALIGNED_SIZE_GET(PLC_CMF_PKT_SIZE)];
@@ -76,35 +76,46 @@ static CACHE_ALIGN uint8_t sDataReg[CACHE_ALIGNED_SIZE_GET(PLC_REG_PKT_SIZE)];
 // *****************************************************************************
 // *****************************************************************************
 
-static uint32_t _DRV_PLC_PHY_COMM_GetPibBaseAddress(DRV_PLC_PHY_ID id)
+static uint32_t lDRV_PLC_PHY_COMM_GetPibBaseAddress(DRV_PLC_PHY_ID id)
 {
     uint32_t addr;
 
     addr = 0;
 
-    if (id & DRV_PLC_PHY_REG_ADC_MASK) {
+    if (((uint16_t)id & DRV_PLC_PHY_REG_ADC_MASK) != 0U)
+    {
         addr = (uint32_t)DRV_PLC_PHY_REG_ADC_BASE;
-    } else if (id & DRV_PLC_PHY_REG_DAC_MASK) {
+    }
+    else if (((uint16_t)id & DRV_PLC_PHY_REG_DAC_MASK) != 0U)
+    {
         addr = (uint32_t)DRV_PLC_PHY_REG_DAC_BASE;
-    } else if (id & DRV_PLC_PHY_FUSES_MASK) {
+    }
+    else if (((uint16_t)id & DRV_PLC_PHY_FUSES_MASK) != 0U)
+    {
         addr = (uint32_t)DRV_PLC_PHY_FUSES_BASE;
-    } else if ((id & DRV_PLC_PHY_REG_MASK) && (id < PLC_ID_END_ID)) {
+    }
+    else if ((((uint16_t)id & DRV_PLC_PHY_REG_MASK) != 0U) && (id < PLC_ID_END_ID))
+    {
         addr = (uint32_t)DRV_PLC_PHY_REG_BASE;
+    }
+    else
+    {
+        addr = 0;
     }
 
     return addr;
 }
 
-uint16_t _DRV_PLC_PHY_COMM_GetDelayUs(DRV_PLC_PHY_ID id)
+static uint16_t lDRV_PLC_PHY_COMM_GetDelayUs(DRV_PLC_PHY_ID id)
 {
     uint16_t delay = 50;
 
-    if ((id & DRV_PLC_PHY_REG_MASK) && (id < PLC_ID_END_ID)) 
+    if ((((uint16_t)id & DRV_PLC_PHY_REG_MASK) != 0U) && (id < PLC_ID_END_ID))
     {
-        switch (id) 
+        switch (id)
         {
             case PLC_ID_CHANNEL_CFG:
-            delay = 5000;
+            delay = 5500;
             break;
 
             case PLC_ID_PREDIST_COEF_TABLE_HI:
@@ -128,67 +139,69 @@ uint16_t _DRV_PLC_PHY_COMM_GetDelayUs(DRV_PLC_PHY_ID id)
     return delay;
 }
 
-static size_t _DRV_PLC_PHY_COMM_TxStringify(DRV_PLC_PHY_TRANSMISSION_OBJ *pSrc)
+static size_t lDRV_PLC_PHY_COMM_TxStringify(DRV_PLC_PHY_TRANSMISSION_OBJ *pSrc)
 {
     uint8_t *pDst;
-    size_t size;
-    
+    ptrdiff_t size;
+    uint8_t csma;
+
     pDst = sDataTx;
-    
-    *pDst++ = (uint8_t)pSrc->time;
-    *pDst++ = (uint8_t)(pSrc->time >> 8);
-    *pDst++ = (uint8_t)(pSrc->time >> 16);
-    *pDst++ = (uint8_t)(pSrc->time >> 24);
+
+    *pDst++ = (uint8_t)pSrc->timeIni;
+    *pDst++ = (uint8_t)(pSrc->timeIni >> 8);
+    *pDst++ = (uint8_t)(pSrc->timeIni >> 16);
+    *pDst++ = (uint8_t)(pSrc->timeIni >> 24);
     *pDst++ = (uint8_t)pSrc->dataLength;
-    *pDst++ = (uint8_t)(pSrc->dataLength >> 8);    
+    *pDst++ = (uint8_t)(pSrc->dataLength >> 8);
     *pDst++ = pSrc->attenuation;
-    *pDst++ = pSrc->scheme;
-    *pDst++ = pSrc->forced;
-    *pDst++ = pSrc->frameType;
+    *pDst++ = (uint8_t)pSrc->scheme;
+    csma = pSrc->csma.disableRx | pSrc->csma.senseCount << 1 | pSrc->csma.senseDelayMs << 4;
+    *pDst++ = csma;
+    *pDst++ = (uint8_t)pSrc->frameType;
     *pDst++ = pSrc->mode;
-    *pDst++ = pSrc->bufferId;
+    *pDst++ = (uint8_t)pSrc->bufferId;
 
     if (pSrc->dataLength > PLC_DATA_PKT_SIZE)
     {
         pSrc->dataLength = PLC_DATA_PKT_SIZE;
     }
 
-    memcpy(pDst, pSrc->pTransmitData, pSrc->dataLength);
+    (void) memcpy(pDst, pSrc->pTransmitData, pSrc->dataLength);
     pDst += pSrc->dataLength;
 
-    size = (uint16_t)(pDst - sDataTx);
-    
-    return size;
-    
+    size = pDst - sDataTx;
+
+    return (size_t)size;
+
 }
 
-static void _DRV_PLC_PHY_COMM_TxCfmEvent(DRV_PLC_PHY_TRANSMISSION_CFM_OBJ *pCfmObj, uint8_t id)
+static void lDRV_PLC_PHY_COMM_TxCfmEvent(DRV_PLC_PHY_TRANSMISSION_CFM_OBJ *pCfmObj, uint8_t id)
 {
     uint8_t *pSrc;
-    
+
     pSrc = sDataTxCfm[id];
-    
+
     pCfmObj->rmsCalc = (uint32_t)*pSrc++;
     pCfmObj->rmsCalc += (uint32_t)*pSrc++ << 8;
     pCfmObj->rmsCalc += (uint32_t)*pSrc++ << 16;
     pCfmObj->rmsCalc += (uint32_t)*pSrc++ << 24;
 
-    pCfmObj->time = (uint32_t)*pSrc++;
-    pCfmObj->time += (uint32_t)*pSrc++ << 8;
-    pCfmObj->time += (uint32_t)*pSrc++ << 16;
-    pCfmObj->time += (uint32_t)*pSrc++ << 24;
+    pCfmObj->timeIni = (uint32_t)*pSrc++;
+    pCfmObj->timeIni += (uint32_t)*pSrc++ << 8;
+    pCfmObj->timeIni += (uint32_t)*pSrc++ << 16;
+    pCfmObj->timeIni += (uint32_t)*pSrc++ << 24;
 
     pCfmObj->frameType = (DRV_PLC_PHY_FRAME_TYPE)*pSrc++;
     pCfmObj->result = (DRV_PLC_PHY_TX_RESULT)*pSrc++;
     pCfmObj->bufferId = (DRV_PLC_PHY_BUFFER_ID)*pSrc;
 }
 
-static void _DRV_PLC_PHY_COMM_RxEvent(DRV_PLC_PHY_RECEPTION_OBJ *pRxObj)
+static void lDRV_PLC_PHY_COMM_RxEvent(DRV_PLC_PHY_RECEPTION_OBJ *pRxObj)
 {
     uint8_t *pSrc;
-    
+
     pSrc = sDataRxPar;
-    
+
     /* Parse parameters of reception event */
     pRxObj->evmHeaderAcum = (uint32_t)*pSrc++;
     pRxObj->evmHeaderAcum += (uint32_t)*pSrc++ << 8;
@@ -198,10 +211,10 @@ static void _DRV_PLC_PHY_COMM_RxEvent(DRV_PLC_PHY_RECEPTION_OBJ *pRxObj)
     pRxObj->evmPayloadAcum += (uint32_t)*pSrc++ << 8;
     pRxObj->evmPayloadAcum += (uint32_t)*pSrc++ << 16;
     pRxObj->evmPayloadAcum += (uint32_t)*pSrc++ << 24;
-    pRxObj->time = (uint32_t)*pSrc++;
-    pRxObj->time += (uint32_t)*pSrc++ << 8;
-    pRxObj->time += (uint32_t)*pSrc++ << 16;
-    pRxObj->time += (uint32_t)*pSrc++ << 24;
+    pRxObj->timeIni = (uint32_t)*pSrc++;
+    pRxObj->timeIni += (uint32_t)*pSrc++ << 8;
+    pRxObj->timeIni += (uint32_t)*pSrc++ << 16;
+    pRxObj->timeIni += (uint32_t)*pSrc++ << 24;
     pRxObj->evmHeader = (uint16_t)*pSrc++;
     pRxObj->evmHeader += (uint16_t)*pSrc++ << 8;
     pRxObj->evmPayload = (uint16_t)*pSrc++;
@@ -223,12 +236,12 @@ static void _DRV_PLC_PHY_COMM_RxEvent(DRV_PLC_PHY_RECEPTION_OBJ *pRxObj)
     {
         pRxObj->dataLength = PLC_DATA_PKT_SIZE;
     }
-    
+
     /* Set data content pointer */
     pRxObj->pReceivedData = sDataRxDat;
 }
 
-static bool _DRV_PLC_PHY_COMM_CheckComm(DRV_PLC_HAL_INFO *info)
+static bool lDRV_PLC_PHY_COMM_CheckComm(DRV_PLC_HAL_INFO *info)
 {
     if (info->key == DRV_PLC_HAL_KEY_CORTEX)
     {
@@ -238,11 +251,11 @@ static bool _DRV_PLC_PHY_COMM_CheckComm(DRV_PLC_HAL_INFO *info)
     else if (info->key == DRV_PLC_HAL_KEY_BOOT)
     {
         /* Communication Error : Check reset value */
-        if (info->flags & DRV_PLC_HAL_FLAG_RST_WDOG)   
+        if ((info->flags & DRV_PLC_HAL_FLAG_RST_WDOG) != 0U)
         {
             /* Debugger is connected */
             DRV_PLC_BOOT_Restart(DRV_PLC_BOOT_RESTART_SOFT);
-            if (gPlcPhyObj->exceptionCallback)
+            if (gPlcPhyObj->exceptionCallback != NULL)
             {
                 gPlcPhyObj->exceptionCallback(DRV_PLC_PHY_EXCEPTION_DEBUG, gPlcPhyObj->contextExc);
             }
@@ -251,17 +264,18 @@ static bool _DRV_PLC_PHY_COMM_CheckComm(DRV_PLC_HAL_INFO *info)
         {
             /* PLC needs boot process to upload firmware */
             DRV_PLC_BOOT_Restart(DRV_PLC_BOOT_RESTART_HARD);
-            if (gPlcPhyObj->exceptionCallback)
+            if (gPlcPhyObj->exceptionCallback != NULL)
             {
                 gPlcPhyObj->exceptionCallback(DRV_PLC_PHY_EXCEPTION_RESET, gPlcPhyObj->contextExc);
             }
-            
+
             /* Update Driver Status */
             gPlcPhyObj->status = SYS_STATUS_BUSY;
         }
 
         /* Check if there is any tx_cfm pending to be reported */
-        if (gPlcPhyObj->state == DRV_PLC_PHY_STATE_WAITING_TX_CFM)
+        if ((gPlcPhyObj->state[0] == DRV_PLC_PHY_STATE_WAITING_TX_CFM) ||
+                (gPlcPhyObj->state[1] == DRV_PLC_PHY_STATE_WAITING_TX_CFM))
         {
             gPlcPhyObj->evResetTxCfm = true;
         }
@@ -272,11 +286,11 @@ static bool _DRV_PLC_PHY_COMM_CheckComm(DRV_PLC_HAL_INFO *info)
     {
         /* PLC needs boot process to upload firmware */
         DRV_PLC_BOOT_Restart(DRV_PLC_BOOT_RESTART_HARD);
-        if (gPlcPhyObj->exceptionCallback)
+        if (gPlcPhyObj->exceptionCallback != NULL)
         {
             gPlcPhyObj->exceptionCallback(DRV_PLC_PHY_EXCEPTION_UNEXPECTED_KEY, gPlcPhyObj->contextExc);
         }
-            
+
         /* Update Driver Status */
         gPlcPhyObj->status = SYS_STATUS_ERROR;
 
@@ -284,28 +298,28 @@ static bool _DRV_PLC_PHY_COMM_CheckComm(DRV_PLC_HAL_INFO *info)
     }
 }
 
-static void _DRV_PLC_PHY_COMM_SpiWriteCmd(DRV_PLC_PHY_MEM_ID id, uint8_t *pData, uint16_t length)
+static void lDRV_PLC_PHY_COMM_SpiWriteCmd(DRV_PLC_PHY_MEM_ID id, uint8_t *pData, uint16_t length)
 {
     DRV_PLC_HAL_CMD halCmd;
     DRV_PLC_HAL_INFO halInfo;
     uint8_t failures = 0;
-    
+
     /* Disable external interrupt from PLC */
     gPlcPhyObj->plcHal->enableExtInt(false);
-    
+
     halCmd.cmd = DRV_PLC_HAL_CMD_WR;
-    halCmd.memId = id;
+    halCmd.memId = (uint16_t)id;
     halCmd.length = length;
     halCmd.pData = pData;
-    
+
     gPlcPhyObj->plcHal->sendWrRdCmd(&halCmd, &halInfo);
-    
+
     /* Check communication integrity */
-    while(!_DRV_PLC_PHY_COMM_CheckComm(&halInfo))
+    while(!lDRV_PLC_PHY_COMM_CheckComm(&halInfo))
     {
         failures++;
-        if (failures == 2) {
-            if (gPlcPhyObj->exceptionCallback)
+        if (failures == 2U) {
+            if (gPlcPhyObj->exceptionCallback != NULL)
             {
                 gPlcPhyObj->exceptionCallback(DRV_PLC_PHY_EXCEPTION_CRITICAL_ERROR, gPlcPhyObj->contextExc);
             }
@@ -313,34 +327,34 @@ static void _DRV_PLC_PHY_COMM_SpiWriteCmd(DRV_PLC_PHY_MEM_ID id, uint8_t *pData,
         }
         gPlcPhyObj->plcHal->reset();
         gPlcPhyObj->plcHal->sendWrRdCmd(&halCmd, &halInfo);
-    }  
-    
+    }
+
     /* Enable external interrupt from PLC */
-    gPlcPhyObj->plcHal->enableExtInt(true); 
+    gPlcPhyObj->plcHal->enableExtInt(true);
 }
 
-static void _DRV_PLC_PHY_COMM_SpiReadCmd(DRV_PLC_PHY_MEM_ID id, uint8_t *pData, uint16_t length)
+static void lDRV_PLC_PHY_COMM_SpiReadCmd(DRV_PLC_PHY_MEM_ID id, uint8_t *pData, uint16_t length)
 {
     DRV_PLC_HAL_CMD halCmd;
     DRV_PLC_HAL_INFO halInfo;
     uint8_t failures = 0;
-    
+
     /* Disable external interrupt from PLC */
     gPlcPhyObj->plcHal->enableExtInt(false);
-    
+
     halCmd.cmd = DRV_PLC_HAL_CMD_RD;
-    halCmd.memId = id;
+    halCmd.memId = (uint16_t)id;
     halCmd.length = length;
     halCmd.pData = pData;
-    
+
     gPlcPhyObj->plcHal->sendWrRdCmd(&halCmd, &halInfo);
-    
+
     /* Check communication integrity */
-    while(!_DRV_PLC_PHY_COMM_CheckComm(&halInfo))
+    while(!lDRV_PLC_PHY_COMM_CheckComm(&halInfo))
     {
         failures++;
-        if (failures == 2) {
-            if (gPlcPhyObj->exceptionCallback)
+        if (failures == 2U) {
+            if (gPlcPhyObj->exceptionCallback != NULL)
             {
                 gPlcPhyObj->exceptionCallback(DRV_PLC_PHY_EXCEPTION_CRITICAL_ERROR, gPlcPhyObj->contextExc);
             }
@@ -348,49 +362,49 @@ static void _DRV_PLC_PHY_COMM_SpiReadCmd(DRV_PLC_PHY_MEM_ID id, uint8_t *pData, 
         }
         gPlcPhyObj->plcHal->reset();
         gPlcPhyObj->plcHal->sendWrRdCmd(&halCmd, &halInfo);
-    }    
-    
+    }
+
     /* Enable external interrupt from PLC */
-    gPlcPhyObj->plcHal->enableExtInt(true); 
+    gPlcPhyObj->plcHal->enableExtInt(true);
 }
 
-static void _DRV_PLC_PHY_COMM_GetEventsInfo(DRV_PLC_PHY_EVENTS_OBJ *eventsObj)
+static void lDRV_PLC_PHY_COMM_GetEventsInfo(DRV_PLC_PHY_EVENTS_OBJ *eventsObj)
 {
     uint8_t *pData;
     DRV_PLC_HAL_CMD halCmd;
     DRV_PLC_HAL_INFO halInfo;
     uint8_t failures = 0;
-    
-    pData = sDataInfo;    
-    
+
+    pData = sDataInfo;
+
     halCmd.cmd = DRV_PLC_HAL_CMD_RD;
-    halCmd.memId = STATUS_ID;
+    halCmd.memId = (uint16_t)STATUS_ID;
     halCmd.length = PLC_STATUS_LENGTH;
     halCmd.pData = pData;
-    
+
     gPlcPhyObj->plcHal->sendWrRdCmd(&halCmd, &halInfo);
-    
+
     /* Check communication integrity */
-    while(!_DRV_PLC_PHY_COMM_CheckComm(&halInfo))
+    while(!lDRV_PLC_PHY_COMM_CheckComm(&halInfo))
     {
         failures++;
-        if (failures == 2) {
-            if (gPlcPhyObj->exceptionCallback)
+        if (failures == 2U) {
+            if (gPlcPhyObj->exceptionCallback != NULL)
             {
                 gPlcPhyObj->exceptionCallback(DRV_PLC_PHY_EXCEPTION_CRITICAL_ERROR, gPlcPhyObj->contextExc);
             }
             break;
         }
         gPlcPhyObj->plcHal->sendWrRdCmd(&halCmd, &halInfo);
-    }    
-    
+    }
+
     /* Extract Events information */
-    eventsObj->evCfm[0] = (halInfo.flags & DRV_PLC_PHY_EV_FLAG_TX0_CFM_MASK)? 1:0;
-    eventsObj->evCfm[1] = (halInfo.flags & DRV_PLC_PHY_EV_FLAG_TX1_CFM_MASK)? 1:0;
-    eventsObj->evRxDat = (halInfo.flags & DRV_PLC_PHY_EV_FLAG_RX_DAT_MASK)? 1:0;
-    eventsObj->evRxPar = (halInfo.flags & DRV_PLC_PHY_EV_FLAG_RX_PAR_MASK)? 1:0;
-    eventsObj->evReg = (halInfo.flags & DRV_PLC_PHY_EV_FLAG_REG_MASK)? 1:0;
-    
+    eventsObj->evCfm[0] = ((halInfo.flags & DRV_PLC_PHY_EV_FLAG_TX0_CFM_MASK) != 0U);
+    eventsObj->evCfm[1] = ((halInfo.flags & DRV_PLC_PHY_EV_FLAG_TX1_CFM_MASK) != 0U);
+    eventsObj->evRxDat = ((halInfo.flags & DRV_PLC_PHY_EV_FLAG_RX_DAT_MASK) != 0U);
+    eventsObj->evRxPar = ((halInfo.flags & DRV_PLC_PHY_EV_FLAG_RX_PAR_MASK) != 0U);
+    eventsObj->evReg = ((halInfo.flags & DRV_PLC_PHY_EV_FLAG_REG_MASK) != 0U);
+
     /* Extract Timer info */
     eventsObj->timerRef = ((uint32_t)*pData++);
     eventsObj->timerRef += ((uint32_t)*pData++) << 8;
@@ -398,10 +412,10 @@ static void _DRV_PLC_PHY_COMM_GetEventsInfo(DRV_PLC_PHY_EVENTS_OBJ *eventsObj)
     eventsObj->timerRef += ((uint32_t)*pData++) << 24;
 
     /* Extract Lengths info */
-    eventsObj->rcvDataLength = ((uint32_t)*pData++);
-    eventsObj->rcvDataLength += ((uint32_t)*pData++) << 8;
-    eventsObj->regRspLength = ((uint32_t)*pData++);
-    eventsObj->regRspLength += ((uint32_t)*pData++) << 8;
+    eventsObj->rcvDataLength = ((uint16_t)*pData++);
+    eventsObj->rcvDataLength += ((uint16_t)*pData++) << 8;
+    eventsObj->regRspLength = ((uint16_t)*pData++);
+    eventsObj->regRspLength += ((uint16_t)*pData++) << 8;
 }
 
 // *****************************************************************************
@@ -409,10 +423,10 @@ static void _DRV_PLC_PHY_COMM_GetEventsInfo(DRV_PLC_PHY_EVENTS_OBJ *eventsObj)
 // Section: DRV_PLC_PHY Common Interface Implementation
 // *****************************************************************************
 // *****************************************************************************
-void DRV_PLC_PHY_Init(DRV_PLC_PHY_OBJ *pl360)
+void DRV_PLC_PHY_Init(DRV_PLC_PHY_OBJ *plcPhyObj)
 {
-    gPlcPhyObj = pl360;
-    
+    gPlcPhyObj = plcPhyObj;
+
     /* Clear information about PLC events */
     gPlcPhyObj->evTxCfm[0] = false;
     gPlcPhyObj->evTxCfm[1] = false;
@@ -420,7 +434,7 @@ void DRV_PLC_PHY_Init(DRV_PLC_PHY_OBJ *pl360)
     gPlcPhyObj->evRxDat = false;
     gPlcPhyObj->evRegRspLength = 0;
     gPlcPhyObj->evResetTxCfm = false;
-    
+
     /* Enable external interrupt from PLC */
     gPlcPhyObj->plcHal->enableExtInt(true);
 }
@@ -433,118 +447,141 @@ void DRV_PLC_PHY_Task(void)
     }
 
     /* Check event flags */
-    for (uint8_t idx = 0; idx < 2; idx++)
+    for (uint8_t idx = 0; idx < 2U; idx++)
     {
         if ((gPlcPhyObj->evTxCfm[idx]) || (gPlcPhyObj->evResetTxCfm))
         {
             DRV_PLC_PHY_TRANSMISSION_CFM_OBJ cfmObj;
-            
+
+            /* Reset event flag */
+            gPlcPhyObj->evTxCfm[idx] = false;
+
             if (gPlcPhyObj->evResetTxCfm)
             {
-				gPlcPhyObj->evResetTxCfm = false;
-            	gPlcPhyObj->state = DRV_PLC_PHY_STATE_IDLE;
-				
+                gPlcPhyObj->evResetTxCfm = false;
+                gPlcPhyObj->state[idx] = DRV_PLC_PHY_STATE_IDLE;
+
                 cfmObj.bufferId = (DRV_PLC_PHY_BUFFER_ID)idx;
                 cfmObj.rmsCalc = 0;
-                cfmObj.time = 0;
+                cfmObj.timeIni = 0;
                 cfmObj.result = DRV_PLC_PHY_TX_RESULT_NO_TX;
             } else {
-                _DRV_PLC_PHY_COMM_TxCfmEvent(&cfmObj, idx);            
+                lDRV_PLC_PHY_COMM_TxCfmEvent(&cfmObj, idx);
             }
-            
-            if (gPlcPhyObj->txCfmCallback)
+
+            if (gPlcPhyObj->txCfmCallback != NULL)
             {
                 /* Report to upper layer */
                 gPlcPhyObj->txCfmCallback(&cfmObj, gPlcPhyObj->contextCfm);
             }
-            
-            /* Reset event flag */
-            gPlcPhyObj->evTxCfm[idx] = false;
         }
     }
-    
+
     if (gPlcPhyObj->evRxPar && gPlcPhyObj->evRxDat)
     {
         DRV_PLC_PHY_RECEPTION_OBJ rxObj;
-        
-        _DRV_PLC_PHY_COMM_RxEvent(&rxObj);
-        if (gPlcPhyObj->dataIndCallback)
+
+        /* Reset event flags */
+        gPlcPhyObj->evRxPar = false;
+        gPlcPhyObj->evRxDat = false;
+
+        lDRV_PLC_PHY_COMM_RxEvent(&rxObj);
+        if (gPlcPhyObj->dataIndCallback != NULL)
         {
             /* Report to upper layer */
             gPlcPhyObj->dataIndCallback(&rxObj, gPlcPhyObj->contextInd);
         }
-        
-        /* Reset event flags */
-        gPlcPhyObj->evRxPar = false;
-        gPlcPhyObj->evRxDat = false;
     }
 }
 
 void DRV_PLC_PHY_TxRequest(const DRV_HANDLE handle, DRV_PLC_PHY_TRANSMISSION_OBJ *transmitObj)
-{    
+{
     DRV_PLC_PHY_TRANSMISSION_CFM_OBJ cfmObj;
+    uint8_t bufIdx = (uint8_t) transmitObj->bufferId;
+
+    if (bufIdx > (uint8_t)(TX_BUFFER_1))
+    {
+        /* Invalid buffer. */
+        if (gPlcPhyObj->txCfmCallback != NULL)
+        {
+            cfmObj.rmsCalc = 0;
+            cfmObj.timeIni = 0;
+            cfmObj.result = DRV_PLC_PHY_TX_RESULT_INV_BUFFER;
+            /* Report to upper layer */
+            gPlcPhyObj->txCfmCallback(&cfmObj, gPlcPhyObj->contextCfm);
+        }
+
+        return;
+    }
 
     if (gPlcPhyObj->sleep)
     {
         /* Do not transmit in SLeep Mode. */
-        if (gPlcPhyObj->txCfmCallback)
+        if (gPlcPhyObj->txCfmCallback != NULL)
         {
             cfmObj.rmsCalc = 0;
-            cfmObj.time = 0;
+            cfmObj.timeIni = 0;
             cfmObj.result = DRV_PLC_PHY_TX_RESULT_NO_TX;
             /* Report to upper layer */
             gPlcPhyObj->txCfmCallback(&cfmObj, gPlcPhyObj->contextCfm);
         }
-        
+
         return;
     }
 
-    if (gPlcPhyObj->plcHal->getThermalMonitor()) 
+    if (gPlcPhyObj->plcHal->getThermalMonitor())
     {
         /* Check thermal warning (>110ºC). Do not transmit and report High Temperature warning. */
-        if (gPlcPhyObj->txCfmCallback)
+        if (gPlcPhyObj->txCfmCallback != NULL)
         {
             cfmObj.rmsCalc = 0;
-            cfmObj.time = 0;
+            cfmObj.timeIni = 0;
             cfmObj.result = DRV_PLC_PHY_TX_RESULT_HIGH_TEMP_110;
             /* Report to upper layer */
             gPlcPhyObj->txCfmCallback(&cfmObj, gPlcPhyObj->contextCfm);
         }
-        
+
         return;
     }
 
-    if((handle != DRV_HANDLE_INVALID) && (handle == 0) && (gPlcPhyObj->state == DRV_PLC_PHY_STATE_IDLE))
+    if((handle != DRV_HANDLE_INVALID) && (handle == 0U) &&
+            ((gPlcPhyObj->state[bufIdx] == DRV_PLC_PHY_STATE_IDLE) || ((transmitObj->mode & TX_MODE_CANCEL) != 0U)))
     {
         size_t size;
-        
-        size = _DRV_PLC_PHY_COMM_TxStringify(transmitObj);
-        
-        if (size)
+
+        size = lDRV_PLC_PHY_COMM_TxStringify(transmitObj);
+
+        if (size > 0U)
         {
-            /* Update PLC state: transmitting */
-            gPlcPhyObj->state = DRV_PLC_PHY_STATE_TX;
-            
-            /* Send TX message */
-            if (transmitObj->bufferId == TX_BUFFER_0)
+            if ((transmitObj->mode & TX_MODE_CANCEL) == 0U)
             {
-                _DRV_PLC_PHY_COMM_SpiWriteCmd(TX0_PAR_ID, sDataTx, size);
+                /* Update PLC state: transmitting */
+                gPlcPhyObj->state[bufIdx] = DRV_PLC_PHY_STATE_TX;
+            }
+
+            /* Send TX message */
+            if (bufIdx == (uint8_t)(TX_BUFFER_0))
+            {
+                lDRV_PLC_PHY_COMM_SpiWriteCmd(TX0_PAR_ID, sDataTx, (uint16_t)size);
             }
             else
             {
-                _DRV_PLC_PHY_COMM_SpiWriteCmd(TX1_PAR_ID, sDataTx, size);
+                lDRV_PLC_PHY_COMM_SpiWriteCmd(TX1_PAR_ID, sDataTx, (uint16_t)size);
             }
-            
+
             /* Update PLC state: waiting confirmation */
-            gPlcPhyObj->state = DRV_PLC_PHY_STATE_WAITING_TX_CFM;
+            gPlcPhyObj->state[bufIdx] = DRV_PLC_PHY_STATE_WAITING_TX_CFM;
+
+            /* Time guard */
+            gPlcPhyObj->plcHal->delay(20);
         }
         else
         {
             /* Notify DRV_PLC_PHY_TX_RESULT_INV_LENGTH */
-            if (gPlcPhyObj->txCfmCallback)
+            if (gPlcPhyObj->txCfmCallback != NULL)
             {
                 cfmObj.rmsCalc = 0;
-                cfmObj.time = 0;
+                cfmObj.timeIni = 0;
                 cfmObj.result = DRV_PLC_PHY_TX_RESULT_INV_LENGTH;
                 /* Report to upper layer */
                 gPlcPhyObj->txCfmCallback(&cfmObj, gPlcPhyObj->contextCfm);
@@ -553,11 +590,11 @@ void DRV_PLC_PHY_TxRequest(const DRV_HANDLE handle, DRV_PLC_PHY_TRANSMISSION_OBJ
     }
     else
     {
-        if (gPlcPhyObj->txCfmCallback)
+        if (gPlcPhyObj->txCfmCallback != NULL)
         {
             /* Notify DRV_PLC_PHY_TX_RESULT_NO_TX */
             cfmObj.rmsCalc = 0;
-            cfmObj.time = 0;
+            cfmObj.timeIni = 0;
             cfmObj.result = DRV_PLC_PHY_TX_RESULT_NO_TX;
             /* Report to upper layer */
             gPlcPhyObj->txCfmCallback(&cfmObj, gPlcPhyObj->contextCfm);
@@ -566,8 +603,8 @@ void DRV_PLC_PHY_TxRequest(const DRV_HANDLE handle, DRV_PLC_PHY_TRANSMISSION_OBJ
 }
 
 bool DRV_PLC_PHY_PIBGet(const DRV_HANDLE handle, DRV_PLC_PHY_PIB_OBJ *pibObj)
-{    
-    if((handle != DRV_HANDLE_INVALID) && (handle == 0))
+{
+    if((handle != DRV_HANDLE_INVALID) && (handle == 0U))
     {
         if (gPlcPhyObj->sleep)
         {
@@ -577,29 +614,29 @@ bool DRV_PLC_PHY_PIBGet(const DRV_HANDLE handle, DRV_PLC_PHY_PIB_OBJ *pibObj)
         if (pibObj->id == PLC_ID_TIME_REF_ID)
         {
             /* Send PIB information request */
-            _DRV_PLC_PHY_COMM_SpiReadCmd(STATUS_ID, pibObj->pData, pibObj->length);
+            lDRV_PLC_PHY_COMM_SpiReadCmd(STATUS_ID, pibObj->pData, pibObj->length);
             return true;
         }
-        else if (pibObj->id & DRV_PLC_PHY_REG_ID_MASK)
+        else if (((uint16_t)pibObj->id & DRV_PLC_PHY_REG_ID_MASK) != 0U)
         {
             uint8_t *pDst;
             uint32_t address;
-            uint32_t offset;
+            uint16_t offset;
             uint16_t secureCnt;
             uint16_t cmdLength;
 
-            offset = (uint32_t)(pibObj->id & DRV_PLC_PHY_REG_OFFSET_MASK);
+            offset = (uint16_t)pibObj->id & DRV_PLC_PHY_REG_OFFSET_MASK;
 
             /* Get address offset */
-            address = _DRV_PLC_PHY_COMM_GetPibBaseAddress(pibObj->id);
-            if (address == 0)
+            address = lDRV_PLC_PHY_COMM_GetPibBaseAddress(pibObj->id);
+            if (address == 0U)
             {
                 return false;
             }
             address += offset;
-            
+
             /* Set CMD and length */
-            cmdLength = DRV_PLC_PHY_CMD_READ | (pibObj->length & DRV_PLC_PHY_REG_LEN_MASK);
+            cmdLength = (uint16_t)DRV_PLC_PHY_CMD_READ | (pibObj->length & DRV_PLC_PHY_REG_LEN_MASK);
 
             /* Build command */
             pDst = sDataReg;
@@ -612,65 +649,80 @@ bool DRV_PLC_PHY_PIBGet(const DRV_HANDLE handle, DRV_PLC_PHY_PIB_OBJ *pibObj)
             *pDst++ = (uint8_t)(cmdLength);
 
             /* Send PIB information request */
-            _DRV_PLC_PHY_COMM_SpiWriteCmd(REG_INFO_ID, sDataReg, 8);
+            lDRV_PLC_PHY_COMM_SpiWriteCmd(REG_INFO_ID, sDataReg, 8U);
 
             /* Wait to the response : Check length of the register response */
             secureCnt = 0xFFFF;
-            while (!gPlcPhyObj->evRegRspLength) {
-                if (!secureCnt--) {
+            while (gPlcPhyObj->evRegRspLength == 0U)
+            {
+                if ((secureCnt--) == 0U)
+                {
                     /* Didn't came the expected response */
                     return false;
                 }
             }
 
             /* copy Register info in data pointer */
-            memcpy(pibObj->pData, sDataReg, pibObj->length);
+            (void) memcpy(pibObj->pData, sDataReg, pibObj->length);
             /* Reset length of the register response */
             gPlcPhyObj->evRegRspLength = 0;
 
             return true;
-        } 
-        else 
+        }
+        else
         {
             uint32_t value;
-            
+            bool result = true;
+
             /* Get HOST information */
             switch(pibObj->id)
             {
                 case PLC_ID_HOST_DESCRIPTION_ID:
-                    memcpy(pibObj->pData, DRV_PLC_PHY_HOST_DESC, 10);
+                {
+                    const char *hostDesc = DRV_PLC_PHY_HOST_DESC;
+                    (void) memcpy((void *)pibObj->pData, (const void *)hostDesc, strlen(DRV_PLC_PHY_HOST_DESC));
                     break;
-                    
+                }
+
                 case PLC_ID_HOST_MODEL_ID:
                     value = DRV_PLC_PHY_HOST_MODEL;
-                    memcpy(pibObj->pData, (uint8_t*)&value, 2);
+                    pibObj->pData[0] = (uint8_t)value;
+                    pibObj->pData[1] = (uint8_t)(value >> 8);
                     break;
-                    
+
                 case PLC_ID_HOST_PHY_ID:
                     value = DRV_PLC_PHY_HOST_PHY;
-                    memcpy(pibObj->pData, (uint8_t*)&value, 4);
+                    pibObj->pData[0] = (uint8_t)value;
+                    pibObj->pData[1] = (uint8_t)(value >> 8);
+                    pibObj->pData[2] = (uint8_t)(value >> 16);
+                    pibObj->pData[3] = (uint8_t)(value >> 24);
                     break;
-                    
+
                 case PLC_ID_HOST_PRODUCT_ID:
                     value = DRV_PLC_PHY_HOST_PRODUCT;
-                    memcpy(pibObj->pData, (uint8_t*)&value, 2);
+                    pibObj->pData[0] = (uint8_t)value;
+                    pibObj->pData[1] = (uint8_t)(value >> 8);
                     break;
-                    
+
                 case PLC_ID_HOST_VERSION_ID:
                     value = DRV_PLC_PHY_HOST_VERSION;
-                    memcpy(pibObj->pData, (uint8_t*)&value, 4);
+                    pibObj->pData[0] = (uint8_t)value;
+                    pibObj->pData[1] = (uint8_t)(value >> 8);
+                    pibObj->pData[2] = (uint8_t)(value >> 16);
+                    pibObj->pData[3] = (uint8_t)(value >> 24);
                     break;
-                    
+
                 case PLC_ID_HOST_BAND_ID:
                     value = DRV_PLC_PHY_HOST_BAND;
-                    memcpy(pibObj->pData, (uint8_t*)&value, 1);
+                    pibObj->pData[0] = (uint8_t)value;
                     break;
-                    
+
                 default:
-                    return false;
+                    result = false;
+                    break;
             }
-            
-            return true;
+
+            return result;
         }
     }
     else
@@ -680,35 +732,35 @@ bool DRV_PLC_PHY_PIBGet(const DRV_HANDLE handle, DRV_PLC_PHY_PIB_OBJ *pibObj)
 }
 
 bool DRV_PLC_PHY_PIBSet(const DRV_HANDLE handle, DRV_PLC_PHY_PIB_OBJ *pibObj)
-{    
-    if((handle != DRV_HANDLE_INVALID) && (handle == 0))
+{
+    if((handle != DRV_HANDLE_INVALID) && (handle == 0U))
     {
         if (gPlcPhyObj->sleep)
         {
             return false;
         }
 
-        if (pibObj->id & DRV_PLC_PHY_REG_ID_MASK)
+        if (((uint16_t)pibObj->id & DRV_PLC_PHY_REG_ID_MASK) != 0U)
         {
             uint8_t *pDst;
             uint8_t *pSrc;
             uint32_t address;
-            uint32_t offset;
+            uint16_t offset;
             uint16_t delay;
             uint16_t cmdLength;
 
-            offset = (uint32_t)(pibObj->id & DRV_PLC_PHY_REG_OFFSET_MASK);
+            offset = (uint16_t)pibObj->id & DRV_PLC_PHY_REG_OFFSET_MASK;
 
             /* Get base address */
-            address = _DRV_PLC_PHY_COMM_GetPibBaseAddress(pibObj->id);
-            if (address == 0)
+            address = lDRV_PLC_PHY_COMM_GetPibBaseAddress(pibObj->id);
+            if (address == 0U)
             {
                 return false;
             }
             address += offset;
-            
+
             /* Set CMD and length */
-            cmdLength = DRV_PLC_PHY_CMD_WRITE | (pibObj->length & DRV_PLC_PHY_REG_LEN_MASK);
+            cmdLength = (uint16_t)DRV_PLC_PHY_CMD_WRITE | (pibObj->length & DRV_PLC_PHY_REG_LEN_MASK);
 
             /* Build command */
             pDst = sDataReg;
@@ -719,97 +771,101 @@ bool DRV_PLC_PHY_PIBSet(const DRV_HANDLE handle, DRV_PLC_PHY_PIB_OBJ *pibObj)
             *pDst++ = (uint8_t)(address);
             *pDst++ = (uint8_t)(cmdLength >> 8);
             *pDst++ = (uint8_t)(cmdLength);
-            
+
             pSrc = pibObj->pData;
-            if (pibObj->length == 4) {
+            if (pibObj->length == 4U)
+            {
                 *pDst++ = *pSrc++;
                 *pDst++ = *pSrc++;
                 *pDst++ = *pSrc++;
                 *pDst++ = *pSrc++;
-            } else if (pibObj->length == 2) {
+            }
+            else if (pibObj->length == 2U)
+            {
                 *pDst++ = *pSrc++;
                 *pDst++ = *pSrc++;
-            } else {
-                memcpy(pDst, pSrc, pibObj->length);
-                pDst += pibObj->length;
+            }
+            else
+            {
+                (void) memcpy(pDst, pSrc, pibObj->length);
             }
 
             /* Send PIB information request */
-            _DRV_PLC_PHY_COMM_SpiWriteCmd(REG_INFO_ID, sDataReg, pDst - sDataReg);
+            lDRV_PLC_PHY_COMM_SpiWriteCmd(REG_INFO_ID, sDataReg, 6U + pibObj->length);
 
             /* Guard delay to ensure writing operation completion. */
-            delay = _DRV_PLC_PHY_COMM_GetDelayUs(pibObj->id);
+            delay = lDRV_PLC_PHY_COMM_GetDelayUs(pibObj->id);
             gPlcPhyObj->plcHal->delay(delay);
 
             return true;
         }
     }
-    
+
     return false;
 }
 
-void DRV_PLC_PHY_ExternalInterruptHandler( PIO_PIN pin, uintptr_t context )
-{    
+void DRV_PLC_PHY_ExternalInterruptHandler(PIO_PIN pin, uintptr_t context)
+{
     /* Avoid warning */
     (void)context;
 
-    if ((gPlcPhyObj) && (pin == (PIO_PIN)gPlcPhyObj->plcHal->plcPlib->extIntPin))
+    if ((gPlcPhyObj != NULL) && (pin == (PIO_PIN)gPlcPhyObj->plcHal->plcPlib->extIntPin))
     {
         DRV_PLC_PHY_EVENTS_OBJ evObj;
-        
+
         /* Time guard */
         gPlcPhyObj->plcHal->delay(20);
-        
+
         /* Get PLC events information */
-        _DRV_PLC_PHY_COMM_GetEventsInfo(&evObj);
-        
+        lDRV_PLC_PHY_COMM_GetEventsInfo(&evObj);
+
         /* Check confirmation of the transmission event */
         if (evObj.evCfm[0])
         {
-            _DRV_PLC_PHY_COMM_SpiReadCmd(TX0_CFM_ID, sDataTxCfm[0], PLC_CMF_PKT_SIZE);
+            lDRV_PLC_PHY_COMM_SpiReadCmd(TX0_CFM_ID, sDataTxCfm[0], (uint16_t)PLC_CMF_PKT_SIZE);
             /* update event flag */
             gPlcPhyObj->evTxCfm[0] = true;
             /* Update PLC state: idle */
-            gPlcPhyObj->state = DRV_PLC_PHY_STATE_IDLE;
+            gPlcPhyObj->state[0] = DRV_PLC_PHY_STATE_IDLE;
         }
 
         if (evObj.evCfm[1])
         {
-            _DRV_PLC_PHY_COMM_SpiReadCmd(TX1_CFM_ID, sDataTxCfm[1], PLC_CMF_PKT_SIZE);
+            lDRV_PLC_PHY_COMM_SpiReadCmd(TX1_CFM_ID, sDataTxCfm[1], PLC_CMF_PKT_SIZE);
             /* update event flag */
             gPlcPhyObj->evTxCfm[1] = true;
             /* Update PLC state: idle */
-            gPlcPhyObj->state = DRV_PLC_PHY_STATE_IDLE;
+            gPlcPhyObj->state[1] = DRV_PLC_PHY_STATE_IDLE;
         }
-        
-        /* Check received new parameters event (First event in RX) */
+
+        /* Check received new data event (First event in RX) */
         if (evObj.evRxDat)
-        {        
-            _DRV_PLC_PHY_COMM_SpiReadCmd(RX_DAT_ID, sDataRxDat, evObj.rcvDataLength);
+        {
+            lDRV_PLC_PHY_COMM_SpiReadCmd(RX_DAT_ID, sDataRxDat, evObj.rcvDataLength);
             /* update event flag */
             gPlcPhyObj->evRxDat = true;
         }
-        
-        /* Check received new data event (Second event in RX) */
+
+        /* Check received new parameters event (Second event in RX) */
         if (evObj.evRxPar)
         {
-            _DRV_PLC_PHY_COMM_SpiReadCmd(RX_PAR_ID, sDataRxPar, PLC_RX_PAR_SIZE - 4);
+            lDRV_PLC_PHY_COMM_SpiReadCmd(RX_PAR_ID, sDataRxPar, (uint16_t)PLC_RX_PAR_SIZE - 4U);
             /* update event flag */
             gPlcPhyObj->evRxPar = true;
         }
-        
+
         /* Check register info event */
         if (evObj.evReg)
-        {     
-            _DRV_PLC_PHY_COMM_SpiReadCmd(REG_INFO_ID, sDataReg, evObj.regRspLength);
+        {
+            lDRV_PLC_PHY_COMM_SpiReadCmd(REG_INFO_ID, sDataReg, evObj.regRspLength);
             /* update event flag */
             gPlcPhyObj->evRegRspLength = evObj.regRspLength;
         }
-        
+
         /* Time guard */
-        gPlcPhyObj->plcHal->delay(50);
+        gPlcPhyObj->plcHal->delay(20);
     }
-    
-    /* PORTD Interrupt Status Clear */
+
+    /* PORT Interrupt Status Clear */
     ((pio_registers_t*)DRV_PLC_EXT_INT_PIO_PORT)->PIO_ISR;
 }

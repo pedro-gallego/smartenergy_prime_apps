@@ -28,7 +28,7 @@
     Microchip Technology Inc.
 
   File Name:
-    app.h
+    app_plc.h
 
   Summary:
     This header file provides prototypes and definitions for the application.
@@ -37,12 +37,12 @@
     This header file provides function prototypes and data type definitions for
     the application.  Some of these are required by the system (such as the
     "APP_Initialize" and "APP_Tasks" prototypes) and some of them are only used
-    internally by the application (such as the "APP_STATES" definition).  Both
+    internally by the application (such as the "APP_PLC_STATES" definition).  Both
     are defined here for convenience.
 *******************************************************************************/
 
-#ifndef _APP_H
-#define _APP_H
+#ifndef _APP_PLC_H
+#define _APP_PLC_H
 
 // *****************************************************************************
 // *****************************************************************************
@@ -70,8 +70,8 @@ extern "C" {
 // Section: Type Definitions
 // *****************************************************************************
 // *****************************************************************************
-#define APP_SERIAL_DATA_BUFFER_SIZE   512
 #define APP_PLC_DATA_BUFFER_SIZE      512
+#define APP_SERIAL_DATA_BUFFER_SIZE   (APP_PLC_DATA_BUFFER_SIZE + 32)
 #define APP_PLC_PIB_BUFFER_SIZE       256
     
 #define LED_BLINK_RATE_MS             500
@@ -91,34 +91,14 @@ extern "C" {
 typedef enum
 {
     /* Application's state machine's initial state. */
-    APP_STATE_IDLE=0,
-    APP_STATE_INIT,
-    APP_STATE_REGISTER,
-    APP_STATE_CONFIG_PLC,
-    APP_STATE_CONFIG_USI,
-    APP_STATE_SEND_PLC_MSG,
-    APP_STATE_SEND_USI_MSG,
-    APP_STATE_READY,
-    APP_STATE_ERROR
+    APP_PLC_STATE_IDLE=0,
+    APP_PLC_STATE_REGISTER,
+    APP_PLC_STATE_CONFIG_PLC,
+    APP_PLC_STATE_CONFIG_USI,
+    APP_PLC_STATE_READY,
+    APP_PLC_STATE_ERROR
 
-} APP_STATE;
-
-/* PLC Transmission Status
-
-  Summary:
-    PLC Transmission states enumeration
-
-  Description:
-    This structure holds the PLC transmission's status.
- */
-
-typedef enum
-{
-    APP_PLC_TX_STATE_IDLE=0,
-    APP_PLC_TX_STATE_WAIT_TX_CFM,
-    APP_PLC_TX_STATE_WAIT_TX_CANCEL
-
-} APP_PLC_TX_STATE;
+} APP_PLC_STATE;
 
 // *****************************************************************************
 /* Application Data
@@ -135,7 +115,7 @@ typedef enum
 
 typedef struct
 {
-    APP_STATE state;
+    APP_PLC_STATE state;
     
     SYS_TIME_HANDLE tmr1Handle;
     
@@ -145,7 +125,7 @@ typedef struct
     
     volatile bool tmr2Expired;
     
-    DRV_HANDLE drvPl360Handle;
+    DRV_HANDLE drvPlcHandle;
     
     SRV_USI_HANDLE srvUSIHandle;
     
@@ -163,19 +143,13 @@ typedef struct
     
     DRV_PLC_PHY_TRANSMISSION_OBJ plcTxObj;
     
-    DRV_PLC_PHY_TRANSMISSION_CFM_OBJ plcTxCfmObj;
-    
-    DRV_PLC_PHY_RECEPTION_OBJ plcRxObj;
-    
     DRV_PLC_PHY_PIB_OBJ plcPIB;
     
     bool pvddMonTxEnable;
     
-    APP_PLC_TX_STATE plcTxState;
-    
     DRV_PLC_PHY_CHANNEL channel;
     
-} APP_DATA;
+} APP_PLC_DATA;
 
 // *****************************************************************************
 // *****************************************************************************
@@ -251,7 +225,7 @@ void APP_Tasks( void );
 
 
 
-#endif /* _APP_H */
+#endif /* _APP_PLC_H */
 
 //DOM-IGNORE-BEGIN
 #ifdef __cplusplus

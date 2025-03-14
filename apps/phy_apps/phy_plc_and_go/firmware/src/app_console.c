@@ -66,6 +66,8 @@
 
 #define DIV_ROUND(a, b)    (((a) + (b >> 1)) / (b))
 
+static va_list sArgs = {0};
+
 /* Application Data
 
   Summary:
@@ -243,7 +245,7 @@ static void APP_CONSOLE_ShowSetSchemeMenu( void )
     
     for (index = 0; index < 8; index++)
     {
-        if (schemeList[index] == appPlcTx.pl360Tx.scheme)
+        if (schemeList[index] == appPlcTx.plcPhyTx.scheme)
         {
             APP_CONSOLE_Print("->\t");
         }
@@ -362,7 +364,7 @@ void APP_CONSOLE_Initialize ( void )
 void APP_CONSOLE_Tasks ( void )
 {
     /* Refresh WDG */
-    WDT_Clear();
+    CLEAR_WATCHDOG();
     
     /* Read console port */
     APP_CONSOLE_ReadSerialChar();
@@ -398,9 +400,9 @@ void APP_CONSOLE_Tasks ( void )
                 APP_CONSOLE_Print(STRING_HEADER);
             
                 /* Show PLC PHY version */
-                APP_CONSOLE_Print("PL360 binary loaded correctly\r\nPHY version: %02x.%02x.%02x.%02x", 
-                        (uint8_t)(appPlcTx.pl360PhyVersion >> 24), (uint8_t)(appPlcTx.pl360PhyVersion >> 16),
-                        (uint8_t)(appPlcTx.pl360PhyVersion >> 8), (uint8_t)(appPlcTx.pl360PhyVersion));
+                APP_CONSOLE_Print("PLC PHY binary loaded correctly\r\nPHY version: %02x.%02x.%02x.%02x", 
+                        (uint8_t)(appPlcTx.plcPhyVersion >> 24), (uint8_t)(appPlcTx.plcPhyVersion >> 16),
+                        (uint8_t)(appPlcTx.plcPhyVersion >> 8), (uint8_t)(appPlcTx.plcPhyVersion));
                 
                 /* Show PLC TX scheme */
                 
@@ -652,8 +654,7 @@ void APP_CONSOLE_Tasks ( void )
 void APP_CONSOLE_Print(const char *format, ...)
 {
     size_t len = 0;
-    va_list args = {0};
-    uint32_t numRetries = 1000;
+    uint32_t numRetries = 10000;
     
     if (appConsole.state == APP_CONSOLE_STATE_INIT)
     {
@@ -666,6 +667,9 @@ void APP_CONSOLE_Print(const char *format, ...)
         {
             /* Maintain Console service */
             SYS_CONSOLE_Tasks(SYS_CONSOLE_INDEX_0);
+
+            /* Refresh WDG */
+            CLEAR_WATCHDOG();
         }
         else
         {
@@ -673,9 +677,9 @@ void APP_CONSOLE_Print(const char *format, ...)
         }
     }
 
-    va_start( args, format );
-    len = vsnprintf(appConsole.pTransmitChar, SERIAL_BUFFER_SIZE - 1, format, args);
-    va_end( args );
+    va_start( sArgs, format );
+    len = vsnprintf(appConsole.pTransmitChar, SERIAL_BUFFER_SIZE - 1, format, sArgs);
+    va_end( sArgs );
     
     if (len > SERIAL_BUFFER_SIZE - 1)
     {

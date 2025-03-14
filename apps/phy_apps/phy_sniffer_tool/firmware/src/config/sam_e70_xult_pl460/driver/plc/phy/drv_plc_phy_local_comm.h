@@ -15,32 +15,32 @@
 *******************************************************************************/
 
 //DOM-IGNORE-BEGIN
-/*******************************************************************************
-* Copyright (C) 2021 Microchip Technology Inc. and its subsidiaries.
-*
-* Subject to your compliance with these terms, you may use Microchip software
-* and any derivatives exclusively with Microchip products. It is your
-* responsibility to comply with third party license terms applicable to your
-* use of third party software (including open source software) that may
-* accompany Microchip software.
-*
-* THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES, WHETHER
-* EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE, INCLUDING ANY IMPLIED
-* WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A
-* PARTICULAR PURPOSE.
-*
-* IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE,
-* INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND
-* WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS
-* BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE FORESEEABLE. TO THE
-* FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN
-* ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
-* THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
-*******************************************************************************/
+/*
+Copyright (C) 2023, Microchip Technology Inc., and its subsidiaries. All rights reserved.
+
+The software and documentation is provided by microchip and its contributors
+"as is" and any express, implied or statutory warranties, including, but not
+limited to, the implied warranties of merchantability, fitness for a particular
+purpose and non-infringement of third party intellectual property rights are
+disclaimed to the fullest extent permitted by law. In no event shall microchip
+or its contributors be liable for any direct, indirect, incidental, special,
+exemplary, or consequential damages (including, but not limited to, procurement
+of substitute goods or services; loss of use, data, or profits; or business
+interruption) however caused and on any theory of liability, whether in contract,
+strict liability, or tort (including negligence or otherwise) arising in any way
+out of the use of the software and documentation, even if advised of the
+possibility of such damage.
+
+Except as expressly permitted hereunder and subject to the applicable license terms
+for any third-party software incorporated in the software and any applicable open
+source software license terms, no license or other rights, whether express or
+implied, are granted under any patent or other intellectual property rights of
+Microchip or any third party.
+*/
 //DOM-IGNORE-END
 
-#ifndef _DRV_PLC_PHY_LOCAL_COMM_H
-#define _DRV_PLC_PHY_LOCAL_COMM_H
+#ifndef DRV_PLC_PHY_LOCAL_COMM_H
+#define DRV_PLC_PHY_LOCAL_COMM_H
 
 // *****************************************************************************
 // *****************************************************************************
@@ -53,38 +53,38 @@
 // *****************************************************************************
 // Section: Macro Definitions
 // *****************************************************************************
-// ***************************************************************************** 
+// *****************************************************************************
 
-#define PLC_STATUS_LENGTH     8
-#define PLC_DATA_PKT_SIZE     512
-#define PLC_TX_PAR_SIZE       sizeof(DRV_PLC_PHY_TRANSMISSION_OBJ)
-#define PLC_RX_PAR_SIZE       sizeof(DRV_PLC_PHY_RECEPTION_OBJ)
-#define PLC_CMF_PKT_SIZE      sizeof(DRV_PLC_PHY_TRANSMISSION_CFM_OBJ)
+#define PLC_STATUS_LENGTH     8U
+#define PLC_DATA_PKT_SIZE     512U
+#define PLC_TX_PAR_SIZE       (uint16_t)(sizeof(DRV_PLC_PHY_TRANSMISSION_OBJ))
+#define PLC_RX_PAR_SIZE       (uint16_t)(sizeof(DRV_PLC_PHY_RECEPTION_OBJ))
+#define PLC_CMF_PKT_SIZE      (uint16_t)(sizeof(DRV_PLC_PHY_TRANSMISSION_CFM_OBJ))
 #define PLC_REG_PKT_SIZE      PLC_DATA_PKT_SIZE
 
 /* Number of transmission buffers */
-#define NUM_TX_BUFFERS                             2
+#define NUM_TX_BUFFERS                             2U
 
 /* FLAG MASKs for set events */
-#define DRV_PLC_PHY_EV_FLAG_TX0_CFM_MASK           0x0001
-#define DRV_PLC_PHY_EV_FLAG_TX1_CFM_MASK           0x0002
-#define DRV_PLC_PHY_EV_FLAG_RX_DAT_MASK            0x0004
-#define DRV_PLC_PHY_EV_FLAG_CD_MASK                0x0008
-#define DRV_PLC_PHY_EV_FLAG_REG_MASK               0x0010
-#define DRV_PLC_PHY_EV_FLAG_RX_PAR_MASK            0x0020
+#define DRV_PLC_PHY_EV_FLAG_TX0_CFM_MASK           0x0001U
+#define DRV_PLC_PHY_EV_FLAG_TX1_CFM_MASK           0x0002U
+#define DRV_PLC_PHY_EV_FLAG_RX_DAT_MASK            0x0004U
+#define DRV_PLC_PHY_EV_FLAG_CD_MASK                0x0008U
+#define DRV_PLC_PHY_EV_FLAG_REG_MASK               0x0010U
+#define DRV_PLC_PHY_EV_FLAG_RX_PAR_MASK            0x0020U
 
 /* FLAG MASKs for register events */
-#define DRV_PLC_PHY_REG_LEN_MASK                   0x1FF
-#define DRV_PLC_PHY_REG_ID_MASK                    0xF000
-#define DRV_PLC_PHY_REG_OFFSET_MASK                0x0FFF
-#define DRV_PLC_PHY_REG_ADC_MASK                   0x1000
-#define DRV_PLC_PHY_REG_DAC_MASK                   0x2000
-#define DRV_PLC_PHY_REG_MASK                       0x4000
-#define DRV_PLC_PHY_FUSES_MASK                     0x8000
-#define DRV_PLC_PHY_REG_ADC_BASE                   0x40000000
-#define DRV_PLC_PHY_REG_DAC_BASE                   0x40004000
-#define DRV_PLC_PHY_REG_BASE                       0x80000000
-#define DRV_PLC_PHY_FUSES_BASE                     0x400E1800
+#define DRV_PLC_PHY_REG_LEN_MASK                   0x1FFU
+#define DRV_PLC_PHY_REG_ID_MASK                    0xF000U
+#define DRV_PLC_PHY_REG_OFFSET_MASK                0x0FFFU
+#define DRV_PLC_PHY_REG_ADC_MASK                   0x1000U
+#define DRV_PLC_PHY_REG_DAC_MASK                   0x2000U
+#define DRV_PLC_PHY_REG_MASK                       0x4000U
+#define DRV_PLC_PHY_FUSES_MASK                     0x8000U
+#define DRV_PLC_PHY_REG_ADC_BASE                   0x40000000UL
+#define DRV_PLC_PHY_REG_DAC_BASE                   0x40004000UL
+#define DRV_PLC_PHY_REG_BASE                       0x80000000UL
+#define DRV_PLC_PHY_FUSES_BASE                     0x400E1800UL
 
 // *****************************************************************************
 // *****************************************************************************
@@ -128,7 +128,7 @@ typedef struct {
     Object used to refer to data regions inside PLC.
 
   Description:
-    This object is used to refer to the data necessary to communicate with 
+    This object is used to refer to the data necessary to communicate with
     PLC.
 
   Remarks:
@@ -151,7 +151,7 @@ typedef enum {
 
 /****************************** DRV_PLC_PHY Interface ***************************/
 
-void DRV_PLC_PHY_Init(DRV_PLC_PHY_OBJ *pl360);
+void DRV_PLC_PHY_Init(DRV_PLC_PHY_OBJ *plcPhyObj);
 void DRV_PLC_PHY_Task(void);
 
-#endif //#ifndef _DRV_PLC_PHY_LOCAL_COMM_H
+#endif //#ifndef DRV_PLC_PHY_LOCAL_COMM_H
